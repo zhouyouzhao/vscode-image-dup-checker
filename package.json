@@ -3,6 +3,7 @@
   "displayName": "Image Duplicate Checker",
   "description": "Check for duplicate images in your workspace",
   "version": "0.0.1",
+  "publisher": "gary",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -15,16 +16,54 @@
     "commands": [
       {
         "command": "image-dup-checker.checkDuplicates",
-        "title": "Check for Duplicate Images"
+        "title": "Find Duplicate Images"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "image-dup-checker.checkDuplicates",
+          "when": "resourceExtname =~ /\\.(png|jpg|jpeg|gif|bmp|webp|svg)$/i",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "image-dup-checker.checkDuplicates",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
+        "when": "resourceExtname =~ /\\.(png|jpg|jpeg|gif|bmp|webp|svg)$/i"
+      }
+    ],
+    "configuration": {
+      "title": "Image Duplicate Checker",
+      "properties": {
+        "imageDupChecker.searchPaths": {
+          "type": "array",
+          "default": ["src/**/*"],
+          "description": "指定要索引的图片路径（相对于工作区根目录）。留空则搜索整个工作区。",
+          "items": {
+            "type": "string"
+          }
+        },
+        "imageDupChecker.imageExtensions": {
+          "type": "array",
+          "default": [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"],
+          "description": "要检查的图片文件扩展名",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
   },
   "scripts": {
     "commit": "git-cz --disable-emoji",
     "vscode:prepublish": "npm run package",
     "compile": "webpack",
-    "install:local": "npm run package:vsix && cursor --install-extension magic-value2const-*.vsix",
-    "install:local:vscode": "npm run package:vsix && code --install-extension magic-value2const-*.vsix",
+    "install:local": "npm run package:vsix && cursor --install-extension image-dup-checker-*.vsix",
+    "install:local:vscode": "npm run package:vsix && code --install-extension image-dup-checker-*.vsix",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "package:vsix": "npm run package && npx vsce package --no-dependencies",
