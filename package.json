@@ -58,7 +58,8 @@
             ".jpeg",
             ".gif",
             ".bmp",
-            ".webp"
+            ".webp",
+            ".svg"
           ],
           "description": "要检查的图片文件扩展名",
           "items": {
