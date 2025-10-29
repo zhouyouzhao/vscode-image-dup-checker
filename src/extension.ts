@@ -235,18 +235,6 @@ export function activate(context: vscode.ExtensionContext) {
 					return;
 				}
 
-				// 计算目标图片的 MD5
-				const targetMD5 = await vscode.window.withProgress(
-					{
-						location: vscode.ProgressLocation.Notification,
-						title: '计算图片 MD5...',
-						cancellable: false
-					},
-					async () => {
-						return await calculateMD5(targetPath);
-					}
-				);
-
 				// 确定搜索路径
 				const workspaceFolders = vscode.workspace.workspaceFolders;
 				if (!workspaceFolders || workspaceFolders.length === 0) {
@@ -257,39 +245,51 @@ export function activate(context: vscode.ExtensionContext) {
 				const workspaceRoot = workspaceFolders[0].uri.fsPath;
 				const searchPatterns = config.get<string[]>('searchPaths') || [];
 
-				// 扫描所有图片
-				const allImages = await vscode.window.withProgress(
+				// 统一的进度提示，包含所有步骤
+				const result = await vscode.window.withProgress(
 					{
-						location: vscode.ProgressLocation.Notification,
-						title: '扫描图片文件...',
+						location: vscode.ProgressLocation.Window,
+						title: '查找重复图片',
 						cancellable: false
 					},
 					async (progress) => {
-						return await scanImageFilesWithGlob(
+						// 步骤 1: 计算目标图片的 MD5
+						progress.report({ message: '计算图片 MD5...' });
+						const targetMD5 = await calculateMD5(targetPath);
+
+						// 步骤 2: 扫描所有图片
+						progress.report({ message: '扫描图片文件...' });
+						const allImages = await scanImageFilesWithGlob(
 							searchPatterns,
 							workspaceRoot,
 							progress
 						);
+
+						// 步骤 3: 查找重复图片
+						progress.report({ message: '查找重复项...' });
+						const duplicates = findDuplicates(targetMD5, allImages);
+
+						if (duplicates.length === 0) {
+							return { success: false, message: '未找到重复图片' };
+						}
+
+						// 过滤掉当前图片后，检查是否还有其他重复图片
+						const otherDuplicates = duplicates.filter(img => img.filePath !== targetPath);
+						if (otherDuplicates.length === 0) {
+							return { success: false, message: '未找到其他重复图片' };
+						}
+
+						return { success: true, duplicates };
 					}
 				);
 
-				// 查找重复图片
-				const duplicates = findDuplicates(targetMD5, allImages);
-
-				if (duplicates.length === 0) {
-					vscode.window.showInformationMessage('未找到重复图片');
-					return;
+				// 进度提示关闭后，再显示结果
+				if (!result.success) {
+					vscode.window.showInformationMessage(result.message!);
+				} else {
+					// 显示重复图片选择器
+					await showDuplicatesQuickPick(result.duplicates!, targetPath);
 				}
-
-				// 过滤掉当前图片后，检查是否还有其他重复图片
-				const otherDuplicates = duplicates.filter(img => img.filePath !== targetPath);
-				if (otherDuplicates.length === 0) {
-					vscode.window.showInformationMessage('未找到其他重复图片');
-					return;
-				}
-
-				// 显示重复图片选择器
-				await showDuplicatesQuickPick(duplicates, targetPath);
 
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : String(error);
