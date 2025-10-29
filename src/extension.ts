@@ -11,6 +11,7 @@ interface ImageInfo {
 
 interface QuickPickItemWithPath extends vscode.QuickPickItem {
 	filePath: string;
+	relativePath: string;
 }
 
 /**
@@ -165,6 +166,7 @@ async function showDuplicatesQuickPick(duplicates: ImageInfo[], targetPath: stri
 		description: '',
 		detail: img.relativePath,
 		filePath: img.filePath,
+		relativePath: img.relativePath,
 		buttons: [
 			{
 				iconPath: new vscode.ThemeIcon('copy'),
@@ -183,10 +185,10 @@ async function showDuplicatesQuickPick(duplicates: ImageInfo[], targetPath: stri
 	});
 
 	quickPick.onDidTriggerItemButton((e) => {
-		// 复制路径到剪贴板
+		// 复制相对路径到剪贴板
 		const item = e.item as QuickPickItemWithPath;
-		vscode.env.clipboard.writeText(item.filePath);
-		vscode.window.showInformationMessage(`已复制路径: ${item.filePath}`);
+		vscode.env.clipboard.writeText(item.relativePath);
+		vscode.window.showInformationMessage(`已复制路径: ${item.relativePath}`);
 	});
 
 	quickPick.onDidHide(() => quickPick.dispose());
