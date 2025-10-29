@@ -41,15 +41,25 @@
       "properties": {
         "imageDupChecker.searchPaths": {
           "type": "array",
-          "default": ["src/**/*"],
-          "description": "指定要索引的图片路径（相对于工作区根目录）。留空则搜索整个工作区。",
+          "default": [
+            "src/**/*.{png,jpg,jpeg,gif,bmp,webp,svg}",
+            "public/**/*.{png,jpg,jpeg,gif,bmp,webp,svg}"
+          ],
+          "description": "指定要索引的图片路径，支持 glob 模式（如 src/**/*.png, **/images/**）。留空则搜索整个工作区。",
           "items": {
             "type": "string"
           }
         },
         "imageDupChecker.imageExtensions": {
           "type": "array",
-          "default": [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"],
+          "default": [
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".bmp",
+            ".webp"
+          ],
           "description": "要检查的图片文件扩展名",
           "items": {
             "type": "string"

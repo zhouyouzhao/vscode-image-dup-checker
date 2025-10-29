@@ -28,14 +28,77 @@ async function calculateMD5(filePath: string): Promise<string> {
 }
 
 /**
- * 递归扫描目录下的所有图片文件
+ * 使用 glob 模式扫描图片文件
  */
-async function scanImageFiles(
-	rootPath: string,
-	extensions: string[],
+async function scanImageFilesWithGlob(
+	globPatterns: string[],
+	workspaceRoot: string,
 	progress: vscode.Progress<{ message?: string; increment?: number }>
 ): Promise<ImageInfo[]> {
 	const images: ImageInfo[] = [];
+	
+	// 如果没有指定模式，使用默认的扫描整个工作区
+	if (globPatterns.length === 0) {
+		return scanImageFilesDefault(workspaceRoot, progress);
+	}
+
+	// 获取配置的图片扩展名
+	const config = vscode.workspace.getConfiguration('imageDupChecker');
+	const imageExtensions = config.get<string[]>('imageExtensions') || [
+		'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'
+	];
+	const normalizedExtensions = imageExtensions.map(ext => ext.toLowerCase());
+
+	// 使用 VS Code 的 findFiles API 支持 glob 模式
+	for (const pattern of globPatterns) {
+		try {
+			const files = await vscode.workspace.findFiles(
+				pattern,
+				'**/node_modules/**'
+			);
+
+			for (const file of files) {
+				const filePath = file.fsPath;
+				
+				// 检查文件扩展名是否是图片
+				const ext = path.extname(filePath).toLowerCase();
+				if (!normalizedExtensions.includes(ext)) {
+					continue;
+				}
+
+				try {
+					const md5 = await calculateMD5(filePath);
+					const relativePath = path.relative(workspaceRoot, filePath);
+					images.push({
+						filePath,
+						md5,
+						relativePath
+					});
+					progress.report({ message: `已扫描: ${relativePath}` });
+				} catch (error) {
+					console.error(`计算 MD5 失败: ${filePath}`, error);
+				}
+			}
+		} catch (error) {
+			console.error(`扫描模式失败: ${pattern}`, error);
+		}
+	}
+
+	return images;
+}
+
+/**
+ * 默认扫描方式：递归扫描目录下的所有图片文件
+ */
+async function scanImageFilesDefault(
+	rootPath: string,
+	progress: vscode.Progress<{ message?: string; increment?: number }>
+): Promise<ImageInfo[]> {
+	const images: ImageInfo[] = [];
+	const config = vscode.workspace.getConfiguration('imageDupChecker');
+	const extensions = config.get<string[]>('imageExtensions') || [
+		'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'
+	];
 	const normalizedExtensions = extensions.map(ext => ext.toLowerCase());
 
 	async function scanDirectory(dirPath: string): Promise<void> {
@@ -192,11 +255,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 
 				const workspaceRoot = workspaceFolders[0].uri.fsPath;
-				const searchPaths = config.get<string[]>('searchPaths') || [];
-				
-				const searchRoots = searchPaths.length > 0
-					? searchPaths.map(p => path.join(workspaceRoot, p))
-					: [workspaceRoot];
+				const searchPatterns = config.get<string[]>('searchPaths') || [];
 
 				// 扫描所有图片
 				const allImages = await vscode.window.withProgress(
@@ -206,18 +265,11 @@ export function activate(context: vscode.ExtensionContext) {
 						cancellable: false
 					},
 					async (progress) => {
-						const images: ImageInfo[] = [];
-						for (const searchRoot of searchRoots) {
-							if (fs.existsSync(searchRoot)) {
-								const scannedImages = await scanImageFiles(
-									searchRoot,
-									imageExtensions,
-									progress
-								);
-								images.push(...scannedImages);
-							}
-						}
-						return images;
+						return await scanImageFilesWithGlob(
+							searchPatterns,
+							workspaceRoot,
+							progress
+						);
 					}
 				);
 
