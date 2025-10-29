@@ -14,6 +14,18 @@
     "type": "git",
     "url": "https://github.com/zhouyouzhao/vscode-image-dup-checker.git"
   },
+  "bugs": {
+    "url": "https://github.com/zhouyouzhao/vscode-image-dup-checker/issues"
+  },
+  "homepage": "https://github.com/zhouyouzhao/vscode-image-dup-checker",
+  "keywords": [
+    "vscode",
+    "extension",
+    "image",
+    "duplicate"
+  ],
+  "author": "Gary",
+  "license": "MIT",
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
